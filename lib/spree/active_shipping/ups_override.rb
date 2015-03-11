@@ -236,23 +236,21 @@ module Spree
             return rate_estimates
           end
 
-
-
           def parse_rate_response(origin, destination, packages, response, options={})
             rates = []
-            xml = REXML::Document.new(response)
+            xml = build_document(response, 'RatingServiceSelectionResponse') 
             success = response_success?(xml)
             message = response_message(xml)
             transits = options[:transit]
             if success
               rate_estimates = []
 
-              xml.elements.each('/*/RatedShipment') do |rated_shipment|
-                service_code    = rated_shipment.get_text('Service/Code').to_s
-                service    = rated_shipment.get_text('Service/Code').to_s
-                negotiated_rate = rated_shipment.get_text('NegotiatedRates/NetSummaryCharges/GrandTotal/MonetaryValue').to_s
-                total_price     = negotiated_rate.blank? ? rated_shipment.get_text('TotalCharges/MonetaryValue').to_s.to_f : negotiated_rate.to_f
-                currency        = negotiated_rate.blank? ? rated_shipment.get_text('TotalCharges/CurrencyCode').to_s : rated_shipment.get_text('NegotiatedRates/NetSummaryCharges/GrandTotal/CurrencyCode').to_s
+              xml.root.css('> RatedShipment').each do |rated_shipment|
+                service_code    = rated_shipment.at('Service/Code').text
+                service    = rated_shipment.at('Service/Code').text
+                negotiated_rate = rated_shipment.at('NegotiatedRates/NetSummaryCharges/GrandTotal/MonetaryValue').text
+                total_price     = negotiated_rate.blank? ? rated_shipment.at('TotalCharges/MonetaryValue').text.to_f : negotiated_rate.to_f
+                currency        = negotiated_rate.blank? ? rated_shipment.at('TotalCharges/CurrencyCode').text : rated_shipment.at('NegotiatedRates/NetSummaryCharges/GrandTotal/CurrencyCode').text
 
                 rate_estimates << ::ActiveShipping::RateEstimate.new(origin, destination, ::ActiveShipping::UPS.name,
                                     service_name_for(origin, service_code),
